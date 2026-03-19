@@ -1,88 +1,108 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Infinity Clicker Ultimate</title>
+<title>Infinity Clicker Premium</title>
 <style>
-body {
-  margin:0;
-  background: radial-gradient(circle, #111, #000);
-  color:white;
-  font-family: Arial;
-  text-align:center;
-  overflow:hidden;
-}
-h1 { margin-top:20px; }
-#score { font-size:40px; }
+/* === RESET & BASIC STYLING === */
+* { margin:0; padding:0; box-sizing:border-box; font-family:system-ui,sans-serif; }
+body { min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; transition:background 0.3s; overflow-x:hidden; }
+h1 { margin-top:25px; font-size:2rem; }
+#score { font-size:2rem; margin:10px 0; }
+#combo, #fragments { font-weight:bold; }
+
+/* === BUTTON === */
 #btn {
-  font-size:28px;
-  padding:25px 40px;
-  margin:20px;
+  font-size:1.5rem;
+  padding:25px 50px;
+  margin:20px 0;
   cursor:pointer;
   border:none;
-  background:#222;
+  border-radius:16px;
+  background:rgba(255,255,255,0.1);
+  backdrop-filter:blur(12px);
   color:white;
-  border-radius:10px;
-  transition:0.1s;
+  transition:0.1s, background 0.3s, color 0.3s;
 }
-#btn:active { transform:scale(1.1); background:#444; }
+#btn:active { transform:scale(1.1); background:rgba(255,255,255,0.2); }
 
-.panel, #prestige, #achievements {
+/* === PANELS === */
+.panel, #prestige, #achievements, #settings {
   position:fixed;
-  background:#111;
-  padding:10px;
-  border-radius:10px;
-  width:200px;
+  background:rgba(255,255,255,0.1);
+  backdrop-filter:blur(12px);
+  border-radius:16px;
+  padding:12px;
+  color:white;
+  width:220px;
+  transition:0.3s, background 0.3s, color 0.3s;
 }
 .panel { right:10px; top:100px; }
-#prestige { left:10px; top:100px; }
+#prestige { left:10px; top:100px; text-align:center; cursor:pointer; }
 #achievements { left:10px; bottom:100px; }
+#settings { right:10px; bottom:100px; text-align:center; cursor:pointer; }
 
-.upgrade {
-  background:#222;
-  margin:10px;
+/* === UPGRADES === */
+.upgrade { 
+  background:rgba(255,255,255,0.1);
+  margin:8px 0;
   padding:10px;
   cursor:pointer;
-  border-radius:8px;
+  border-radius:12px;
+  transition:0.3s;
 }
-.upgrade:hover { background:#333; }
+.upgrade:hover { background:rgba(255,255,255,0.2); }
 
+/* === FLOATING TEXT === */
 .float {
   position:absolute;
-  font-size:20px;
+  font-size:16px;
   pointer-events:none;
   animation: floatUp 1s forwards;
+  color: #00ffff;
+  text-shadow:0 0 5px #00ffff;
 }
-@keyframes floatUp {
-  0% {opacity:1; transform:translateY(0);}
-  100% {opacity:0; transform:translateY(-60px);}
+@keyframes floatUp { 0% {opacity:1; transform:translateY(0);} 100% {opacity:0; transform:translateY(-60px);} }
+
+/* === DARK/LIGHT MODE === */
+body.light { background:linear-gradient(135deg,#f8f8f8,#dcdcdc); color:#111; }
+body.light #btn, body.light .panel, body.light #prestige, body.light #achievements, body.light .upgrade, body.light #settings {
+  background:rgba(255,255,255,0.3);
+  color:#111;
+}
+body.light #btn:active, body.light .upgrade:hover { background:rgba(255,255,255,0.5); }
+
+/* === RESPONSIVE MOBILE === */
+@media(max-width:600px){
+  #btn { font-size:1.2rem; padding:20px 35px; }
+  .panel, #prestige, #achievements, #settings { width:160px; padding:8px; }
 }
 </style>
 </head>
 <body>
 
-<h1>Infinity Clicker Ultimate</h1>
+<h1>Infinity Clicker</h1>
 <div id="score">0</div>
-<div>Combo: <span id="combo">0</span></div>
-<div>Fragments: <span id="fragments">0</span></div>
-
+<div>Combo: <span id="combo">0</span> | Fragments: <span id="fragments">0</span></div>
 <button id="btn">CLICK</button>
 
+<!-- PANELS -->
 <div class="panel">
   <div class="upgrade" onclick="buyPower()">Power (+1) - 20</div>
   <div class="upgrade" onclick="buyAuto()">Auto Click - 50</div>
   <div class="upgrade" onclick="buyMulti()">Multiplier (+0.5) - 100</div>
 </div>
 
-<div id="prestige">
-  <div onclick="prestige()">Prestige Reset</div>
-</div>
+<div id="prestige" onclick="prestige()">Prestige Reset</div>
 
 <div id="achievements">
   <h4>Achievements</h4>
   <ul id="achList"></ul>
 </div>
 
+<div id="settings" onclick="toggleTheme()">Toggle Dark/Light Mode</div>
+
+<!-- AUDIO -->
 <audio id="music" loop autoplay>
   <source src="https://cdn.pixabay.com/audio/2022/03/15/audio_115b9b1b9c.mp3" type="audio/mpeg">
 </audio>
@@ -94,28 +114,32 @@ h1 { margin-top:20px; }
 </audio>
 
 <script>
+// === GAME VARIABLES ===
 let score=0, power=1, auto=0, multi=1, combo=0, fragments=0;
-let achievements = {firstClick:false, hundredClicks:false, firstAuto:false, prestige1:false};
+let achievements={firstClick:false,hundredClicks:false,firstAuto:false,prestige1:false};
 let comboTimer;
 
+// === DOM ELEMENTS ===
 const btn=document.getElementById("btn");
-const clickSound = document.getElementById("clickSound");
-const upgradeSound = document.getElementById("upgradeSound");
+const clickSound=document.getElementById("clickSound");
+const upgradeSound=document.getElementById("upgradeSound");
 
-btn.onclick = (e)=>{
+// === CLICK HANDLER ===
+btn.onclick=(e)=>{
   combo++;
   clearTimeout(comboTimer);
-  comboTimer = setTimeout(()=>combo=0,1000);
+  comboTimer=setTimeout(()=>combo=0,1000);
   
-  let gain = power*multi*(1+combo*0.1);
-  score += gain;
+  let gain=power*multi*(1+combo*0.1);
+  score+=gain;
   spawnText("+"+Math.floor(gain), e.clientX, e.clientY);
   clickSound.currentTime=0; clickSound.play();
-
+  
   checkAchievements();
   update();
 };
 
+// === FLOATING TEXT ===
 function spawnText(text,x,y){
   let el=document.createElement("div");
   el.className="float";
@@ -126,48 +150,51 @@ function spawnText(text,x,y){
   setTimeout(()=>el.remove(),1000);
 }
 
+// === UPDATE DISPLAY ===
 function update(){
   document.getElementById("score").innerText=Math.floor(score);
   document.getElementById("combo").innerText=combo;
   document.getElementById("fragments").innerText=fragments;
 }
 
+// === UPGRADES ===
 function buyPower(){if(score>=20){score-=20; power++; upgradeSound.play(); update();}}
 function buyAuto(){if(score>=50){score-=50; auto++; upgradeSound.play(); update(); checkAchievements();}}
 function buyMulti(){if(score>=100){score-=100; multi+=0.5; upgradeSound.play(); update();}}
 
+// === AUTO CLICKER ===
 setInterval(()=>{
   score += auto*multi;
   update();
 },1000);
 
+// === PRESTIGE ===
 function prestige(){
   if(score>=1000){
     let gained=Math.floor(score/1000);
     fragments+=gained;
     score=0; power=1; auto=0; multi=1;
-    document.body.style.background="linear-gradient(45deg, purple, black)";
+    document.body.style.background="linear-gradient(135deg,purple,#000)";
     upgradeSound.play();
     update();
     checkAchievements(true);
   }
 }
 
-// ACHIEVEMENTS
+// === ACHIEVEMENTS ===
 function checkAchievements(prestige=false){
   if(!achievements.firstClick && score>=1){achievements.firstClick=true; addAch("First Click!");}
   if(!achievements.hundredClicks && score>=100){achievements.hundredClicks=true; addAch("100 Points!");}
   if(!achievements.firstAuto && auto>=1){achievements.firstAuto=true; addAch("Auto Clicker!");}
   if(prestige && !achievements.prestige1){achievements.prestige1=true; addAch("First Prestige!");}
 }
-
 function addAch(text){
   let li=document.createElement("li");
   li.innerText=text;
   document.getElementById("achList").appendChild(li);
 }
 
-// SAVE SYSTEM
+// === SAVE SYSTEM ===
 setInterval(()=>{
   localStorage.setItem("save",JSON.stringify({score,power,auto,multi,fragments,achievements}));
 },2000);
@@ -179,7 +206,6 @@ if(save){
   update();
   for(let ach in achievements){ if(achievements[ach]) addAch(formatAchName(ach)); }
 }
-
 function formatAchName(key){
   switch(key){
     case "firstClick": return "First Click!";
@@ -188,6 +214,14 @@ function formatAchName(key){
     case "prestige1": return "First Prestige!";
   }
   return key;
+}
+
+// === DARK/LIGHT THEME ===
+let dark=true;
+function toggleTheme(){
+  dark=!dark;
+  if(dark){ document.body.classList.remove("light"); }
+  else { document.body.classList.add("light"); }
 }
 
 </script>
